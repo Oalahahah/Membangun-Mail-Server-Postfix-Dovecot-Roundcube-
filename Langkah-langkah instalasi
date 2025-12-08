@@ -1,0 +1,224 @@
+
+
+# KONSEP SINGKAT
+
+| Komponen       | Fungsi                            |
+| -------------- | --------------------------------- |
+|   Postfix      | Server pengirim email (SMTP)      |
+|   Dovecot      | Server penerima email (IMAP) |
+|   Roundcube    | Webmail berbasis browser          |
+|   User Linux   | Digunakan sebagai akun email      |
+
+Alur kerja email:
+Kirim Email → Postfix (SMTP) → Disimpan di Server → Dovecot (IMAP) → Dibaca via Roundcube
+
+---
+
+# SPESIFIKASI PRAKTIKUM
+
+OS: **Ubuntu Server 20.04 / 22.04 / 24.04**
+Domain: pakai **localhost** dulu (tanpa domain publik)
+Akses Webmail: `http://ip-server/roundcube`
+User email: user Linux (contoh: mahasiswa1)
+
+---
+
+# LANGKAH 1 — UPDATE SISTEM
+
+sudo apt update && sudo apt upgrade -y
+
+---
+
+# LANGKAH 2 — INSTALL POSTFIX (SMTP)
+
+sudo apt install postfix -y
+
+Saat muncul pilihan:
+
+* Pilih: **Internet Site**
+* System mail name: isi
+
+  localhost
+
+Cek apakah Postfix berjalan:
+
+sudo systemctl status postfix
+
+Jika aktif, berarti SMTP sudah berjalan.
+
+
+# LANGKAH 3 — INSTALL DOVECOT (IMAP)
+
+sudo apt install dovecot-imapd dovecot-pop3d -y
+
+Aktifkan Dovecot:
+
+sudo systemctl enable dovecot
+sudo systemctl start dovecot
+sudo systemctl status dovecot
+
+Jika status active (running), maka IMAP sudah berjalan.
+
+---
+
+# LANGKAH 4 — KONFIGURASI DASAR DOVECOT
+
+Edit file:
+
+sudo nano /etc/dovecot/conf.d/10-mail.conf
+
+Cari baris ini:
+
+mail_location =
+
+Ubah menjadi:
+
+mail_location = maildir:~/Maildir
+
+Simpan → restart Dovecot:
+
+sudo systemctl restart dovecot
+
+---
+
+# LANGKAH 5 — MEMBUAT AKUN EMAIL (USER LINUX)
+
+Setiap user Linux otomatis menjadi akun email.
+
+Contoh buat user:
+
+sudo adduser mahasiswa1
+
+Masukkan password.
+
+Artinya:
+
+Email: mahasiswa1@localhost
+Password: sesuai yang dibuat
+
+---
+
+# LANGKAH 6 — UJI SMTP & IMAP VIA TERMINAL
+
+Install mail client:
+
+sudo apt install mailutils -y
+
+Kirim email dari user:
+
+su - mahasiswa1
+mail mahasiswa1
+
+Ketik isi pesan → tekan:
+
+Ctrl + D
+
+Cek inbox:
+
+mail
+
+Jika pesan masuk → **SMTP & IMAP SUKSES.**
+
+---
+
+# LANGKAH 7 — INSTALL APACHE, PHP & DATABASE
+
+Roundcube butuh web server dan database.
+
+sudo apt install apache2 php php-mysql php-intl php-xml php-mbstring mariadb-server unzip wget -y
+
+Aktifkan database:
+
+sudo systemctl enable mariadb
+sudo systemctl start mariadb
+
+---
+
+# LANGKAH 8 — BUAT DATABASE ROUNDCUBE
+
+Masuk ke MariaDB:
+
+sudo mysql
+
+Jalankan:
+
+CREATE DATABASE roundcube;
+CREATE USER 'roundcube'@'localhost' IDENTIFIED BY 'passwordku';
+GRANT ALL PRIVILEGES ON roundcube.* TO 'roundcube'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+
+---
+
+# LANGKAH 9 — INSTALL ROUNDCUBE
+
+cd /var/www/html
+sudo wget https://github.com/roundcube/roundcubemail/releases/download/1.6.6/roundcubemail-1.6.6-complete.tar.gz
+sudo tar -xvf roundcubemail-1.6.6-complete.tar.gz
+sudo mv roundcubemail-1.6.6 roundcube
+sudo chown -R www-data:www-data /var/www/html/roundcube
+
+---
+
+# LANGKAH 10 — SETUP ROUNDCUBE VIA WEB
+
+Buka browser:
+
+http://IP-SERVER/roundcube/installer
+
+Isi:
+
+* IMAP Server: `localhost`
+* SMTP Server: `localhost`
+* Database:
+
+  * User: `roundcube`
+  * Password: `passwordku`
+  * Database: `roundcube`
+
+Klik **Initialize Database**
+
+Hapus installer:
+
+sudo rm -rf /var/www/html/roundcube/installer
+
+---
+
+# LANGKAH 11 — AKSES WEBMAIL
+
+Buka:
+
+http://IP-SERVER/roundcube
+
+Login:
+
+Username: mahasiswa1
+Password: (password linux)
+
+Jika inbox tampil → **WEBMAIL ROUNDCUBE BERHASIL.**
+
+---
+
+#  OUTPUT AKHIR 
+
+| Target               | 
+| -------------------- | 
+| Mail Server Lengkap  |       
+| SMTP Berjalan        | 
+| IMAP Berjalan        |
+| Webmail Roundcube    |
+| Login Email          |
+| Kirim & Terima Email |
+
+---
+
+# RINGKASAN ALUR 
+
+1. Install Postfix sebagai SMTP server
+2. Install Dovecot sebagai IMAP server
+3. Membuat akun email dari user Linux
+4. Menguji pengiriman email via terminal
+5. Install Apache, PHP, dan MariaDB
+6. Install dan konfigurasi Roundcube
+7. Login Webmail dan uji kirim-terima email
+
